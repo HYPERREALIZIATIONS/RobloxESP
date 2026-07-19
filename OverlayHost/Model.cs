@@ -23,6 +23,11 @@ public class Entity
     public float Height { get; set; } = 5f; // box height in studs (auto if 0)
     public float Width { get; set; } = 2f;  // box width in studs (auto if 0)
 
+    // Wall occlusion. The in-game feed computes this (it has the real geometry):
+    // true = blocked by a wall, false = clear line of sight.
+    // When ShowThroughWalls is on, occluded entities are still drawn (dimmed).
+    public bool Occluded { get; set; } = false;
+
     // Optional explicit bone joints for skeleton ESP (world space).
     // If empty, the renderer derives a simple biped skeleton from Root/Head/Feet.
     public List<Bone> Bones { get; set; } = new();

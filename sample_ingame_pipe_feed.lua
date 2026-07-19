@@ -41,10 +41,25 @@ local function buildFrame()
 		if not (hum and root and head) then continue end
 
 		local isTeammate = LocalPlayer.Team and plr.Team == LocalPlayer.Team
+		-- Occlusion: raycast from camera to the player's head; if something solid
+		-- blocks it, mark Occluded. This is the ONLY place wall logic lives, since
+		-- the external overlay has no game geometry.
+		local occluded = false
+		local camPos = Camera.CFrame.Position
+		local dir = (head.Position - camPos)
+		local ray = Ray.new(camPos, dir.Unit * dir.Magnitude)
+		local params = RaycastParams.new()
+		params.FilterDescendantsInstances = { char, LocalPlayer.Character }
+		params.FilterType = Enum.RaycastFilterType.Blacklist
+		local hit = workspace:Raycast(camPos, dir.Unit * dir.Magnitude, params)
+		if hit and hit.Instance then
+			occluded = true
+		end
 		table.insert(ents, {
 			Name = plr.Name,
 			Team = plr.Team and plr.Team.Name or "",
 			IsTeammate = isTeammate or false,
+			Occluded = occluded,
 			Health = hum.Health,
 			MaxHealth = hum.MaxHealth,
 			Rig = (hum.RigType == Enum.HumanoidRigType.R15) and "R15" or "R6",

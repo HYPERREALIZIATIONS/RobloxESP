@@ -11,6 +11,7 @@ public class Settings
     public bool Enabled { get; set; } = true;
     public bool TeamCheck { get; set; } = true;
     public float DistanceLimit { get; set; } = 0; // 0 = off
+    public bool ShowThroughWalls { get; set; } = true; // draw occluded players (dimmed)
 
     public string BoxMode { get; set; } = "corner"; // corner | full | threed
     public int BoxColor { get; set; } = 0x00FF00;

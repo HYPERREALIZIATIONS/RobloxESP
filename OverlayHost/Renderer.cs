@@ -35,6 +35,13 @@ public class Renderer
         float dist = Project.Distance(e.Root, cam.Position);
         if (s.DistanceLimit > 0 && dist > s.DistanceLimit) return;
 
+        // Wall handling. The external overlay has no game geometry, so occlusion
+        // is decided by the in-game feed (e.Occluded). When ShowThroughWalls is on,
+        // occluded players are still drawn but dimmed; otherwise they are hidden.
+        bool throughWalls = s.ShowThroughWalls;
+        if (e.Occluded && !throughWalls) return;
+        float wallDim = (e.Occluded && throughWalls) ? 0.35f : 1f;
+
         var boxColor = s.Rainbow ? ColorUtil.Rainbow(_rainbowHue) : ColorUtil.FromRgb(s.BoxColor);
         var skelColor = s.Rainbow ? ColorUtil.Rainbow(_rainbowHue) : ColorUtil.FromRgb(s.SkeletonColor);
         var tracerColor = s.Rainbow ? ColorUtil.Rainbow(_rainbowHue) : ColorUtil.FromRgb(s.TracerColor);
@@ -55,7 +62,7 @@ public class Renderer
         float left = cx - boxW / 2;
         float right = cx + boxW / 2;
 
-        Color oc = ColorUtil.WithAlpha(boxColor, s.BoxOpacity);
+        Color oc = ColorUtil.WithAlpha(boxColor, s.BoxOpacity * wallDim);
 
         // ---- Box ----
         if (s.BoxMode == "full")
@@ -75,13 +82,13 @@ public class Renderer
         // ---- Skeleton ----
         if (s.Skeleton && !s.PerformanceMode)
         {
-            DrawSkeleton(g, e, cam, ColorUtil.WithAlpha(skelColor, 1f), s.SkeletonThickness);
+            DrawSkeleton(g, e, cam, ColorUtil.WithAlpha(skelColor, wallDim), s.SkeletonThickness);
         }
 
         // ---- Chams (outline emulation: glow under box) ----
         if (s.Chams)
         {
-            using var pen = new Pen(ColorUtil.WithAlpha(ColorUtil.FromRgb(s.ChamsColor), s.ChamsOpacity), s.BoxThickness + 4);
+            using var pen = new Pen(ColorUtil.WithAlpha(ColorUtil.FromRgb(s.ChamsColor), s.ChamsOpacity * wallDim), s.BoxThickness + 4);
             g.DrawRectangle(pen, left - 3, topY - 3, boxW + 6, boxH + 6);
         }
 
@@ -92,9 +99,9 @@ public class Renderer
             float bw = 3;
             float bx = left - 7;
             var hc = ratio > 0.5f ? ColorUtil.FromRgb(s.HealthColor) : ColorUtil.FromRgb(s.HealthColorBad);
-            using (var bg = new SolidBrush(Color.FromArgb(120, 0, 0, 0)))
+            using (var bg = new SolidBrush(Color.FromArgb((int)(120 * wallDim), 0, 0, 0)))
                 g.FillRectangle(bg, bx, topY, bw, boxH);
-            using (var fg = new SolidBrush(hc))
+            using (var fg = new SolidBrush(ColorUtil.WithAlpha(hc, wallDim)))
                 g.FillRectangle(fg, bx, botY - boxH * ratio, bw, boxH * ratio);
         }
 
@@ -107,7 +114,7 @@ public class Renderer
                 "mouse" => mouse,
                 _ => new Point(cam.ViewW / 2, cam.ViewH),
             };
-            using var pen = new Pen(ColorUtil.WithAlpha(tracerColor, 1f), s.TracerThickness);
+            using var pen = new Pen(ColorUtil.WithAlpha(tracerColor, wallDim), s.TracerThickness);
             g.DrawLine(pen, origin, new Point((int)cx, (int)botY));
         }
 
@@ -115,7 +122,7 @@ public class Renderer
         if (s.Names)
         {
             using var font = new Font("Segoe UI", s.NameSize, FontStyle.Bold);
-            using var brush = new SolidBrush(nameColor);
+            using var brush = new SolidBrush(ColorUtil.WithAlpha(nameColor, wallDim));
             string txt = $"{e.Name} [{Math.Round(dist)}m]";
             var sf = new StringFormat { Alignment = StringAlignment.Center };
             g.DrawString(txt, font, brush, cx, topY - s.NameSize - 6, sf);

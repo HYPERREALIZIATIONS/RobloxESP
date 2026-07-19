@@ -38,6 +38,12 @@ load `dist/index.html`.
 - Chams-style outline
 - Health bars, tracers (bottom/center/mouse origin), names + distance
 - Team check, rainbow, distance limit, performance mode
+- **Through-walls ESP**: `ShowThroughWalls` (default on). Occlusion is decided by
+  the in-game feed (it has the real geometry) via the `Occluded` flag on each
+  entity. When on, players behind walls are still drawn but dimmed (35% alpha);
+  when off, occluded players are hidden. The external overlay does NOT read game
+  memory, so it cannot detect walls itself — the `Occluded` value must come from
+  your consented in-game script (see `sample_ingame_pipe_feed.lua`).
 - Config save/load (`esp_config.json` next to the exe)
 - Clean shutdown (restores nothing in-game since it's external)
 
@@ -67,6 +73,7 @@ Set `Provider`, `PipeName`, `TcpHost`, `TcpPort` in `esp_config.json`.
   "Entities": [
     {
       "Name": "Player_1", "Team": "Blue", "IsTeammate": true,
+      "Occluded": false,
       "Health": 80, "MaxHealth": 100, "Rig": "R15",
       "Root": {"X":10,"Y":3,"Z":6}, "Head": {"X":10,"Y":5.2,"Z":6},
       "Feet": {"X":10,"Y":0,"Z":6}, "Height": 5, "Width": 2,
