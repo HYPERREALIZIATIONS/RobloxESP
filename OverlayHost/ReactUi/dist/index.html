@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ESP Settings</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: "Segoe UI", system-ui, sans-serif; font-size: 13px;
+    background: #12121c; color: #e8e8ef; user-select: none;
+  }
+  header { padding: 8px 12px; background: #1c1c2a; font-weight: 700; }
+  header small { display:block; font-weight: 400; color:#8aa; font-size:11px; }
+  .row { display:flex; align-items:center; justify-content:space-between; padding:6px 12px; }
+  .row + .row { border-top: 1px solid #23233a; }
+  .row label { flex:1; }
+  .section { padding: 6px 12px; background:#171723; font-weight:700; color:#9af; letter-spacing:.5px; }
+  input[type=range] { width: 110px; }
+  input[type=color] { width: 36px; height: 22px; border:none; background:none; padding:0; }
+  .toggle { cursor:pointer; padding:2px 8px; border-radius:4px; background:#2a2a40; }
+  .toggle.on { background:#1f7a3a; color:#fff; }
+  .toggle.off { background:#5a2230; color:#fff; }
+  .seg button { background:#2a2a40; color:#ccc; border:none; padding:3px 6px; cursor:pointer; }
+  .seg button.active { background:#2a6cff; color:#fff; }
+  .btns { display:flex; gap:8px; padding:10px 12px; }
+  .btns button { flex:1; padding:6px; border:none; border-radius:5px; cursor:pointer; background:#2a6cff; color:#fff; }
+  .hint { padding: 4px 12px; color:#8aa; font-size:11px; }
+</style>
+</head>
+<body>
+<header>ESP Settings
+  <small>Ctrl = hide overlay · config auto-saves</small>
+</header>
+<div id="app"></div>
+<div class="hint">Provider: demo (mock). For your game, set provider=pipe/tcp and run a script that writes JSON frames to the named pipe / socket.</div>
+
+<script>
+const S = {};
+const fields = [
+  {k:"Enabled", t:"toggle", sec:"Features"},
+  {k:"TeamCheck", t:"toggle"},
+  {k:"Skeleton", t:"toggle"},
+  {k:"Chams", t:"toggle"},
+  {k:"HealthBar", t:"toggle"},
+  {k:"Tracer", t:"toggle"},
+  {k:"Names", t:"toggle"},
+  {k:"Rainbow", t:"toggle"},
+  {k:"PerformanceMode", t:"toggle"},
+  {k:"BoxMode", t:"seg", opts:["corner","full","threed"], sec:"Box"},
+  {k:"BoxColor", t:"color"},
+  {k:"BoxThickness", t:"range", min:0.5, max:6, step:0.5},
+  {k:"BoxOpacity", t:"range", min:0.1, max:1, step:0.1},
+  {k:"SkeletonColor", t:"color", sec:"Skeleton"},
+  {k:"SkeletonThickness", t:"range", min:0.5, max:6, step:0.5},
+  {k:"TracerOrigin", t:"seg", opts:["bottom","center","mouse"], sec:"Tracer"},
+  {k:"TracerColor", t:"color"},
+  {k:"TracerThickness", t:"range", min:0.5, max:6, step:0.5},
+  {k:"NameColor", t:"color", sec:"Names"},
+  {k:"NameSize", t:"range", min:9, max:24, step:1},
+  {k:"HealthColor", t:"color", sec:"Health"},
+  {k:"HealthColorBad", t:"color"},
+  {k:"DistanceLimit", t:"range", min:0, max:2000, step:10, sec:"Limits"},
+  {k:"RainbowSpeed", t:"range", min:0.1, max:5, step:0.1},
+];
+
+function push() { window.chrome.webview.postMessage(JSON.stringify(S)); }
+function set(k,v){ S[k]=v; push(); }
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  let curSec = null;
+  for (const f of fields){
+    if (f.sec && f.sec !== curSec){
+      curSec = f.sec;
+      const sec = document.createElement('div'); sec.className='section'; sec.textContent=f.sec;
+      app.appendChild(sec);
+    }
+    const row = document.createElement('div'); row.className='row';
+    const lab = document.createElement('label'); lab.textContent = pretty(f.k);
+    row.appendChild(lab);
+    if (f.t === 'toggle'){
+      const b = document.createElement('span');
+      b.className = 'toggle ' + (S[f.k] ? 'on':'off');
+      b.textContent = S[f.k] ? 'ON' : 'OFF';
+      b.onclick = () => { set(f.k, !S[f.k]); render(); };
+      row.appendChild(b);
+    } else if (f.t === 'color'){
+      const c = document.createElement('input'); c.type='color';
+      c.value = '#' + (S[f.k]>>>0).toString(16).padStart(6,'0');
+      c.oninput = () => set(f.k, parseInt(c.value.slice(1),16));
+      row.appendChild(c);
+    } else if (f.t === 'range'){
+      const r = document.createElement('input'); r.type='range';
+      r.min=f.min; r.max=f.max; r.step=f.step; r.value=S[f.k];
+      const val = document.createElement('span'); val.style.width='42px'; val.style.textAlign='right';
+      val.textContent = S[f.k];
+      r.oninput = () => { set(f.k, parseFloat(r.value)); val.textContent=r.value; };
+      row.appendChild(r); row.appendChild(val);
+    } else if (f.t === 'seg'){
+      const seg = document.createElement('div'); seg.className='seg';
+      f.opts.forEach(o=>{
+        const btn=document.createElement('button'); btn.textContent=o;
+        if (S[f.k]===o) btn.className='active';
+        btn.onclick=()=>{ set(f.k,o); render(); };
+        seg.appendChild(btn);
+      });
+      row.appendChild(seg);
+    }
+    app.appendChild(row);
+  }
+  const btns = document.createElement('div'); btns.className='btns';
+  const sv = document.createElement('button'); sv.textContent='Save Config';
+  sv.onclick=()=>push();
+  btns.appendChild(sv);
+  app.appendChild(btns);
+}
+function pretty(k){ return k.replace(/([A-Z])/g,' $1').replace(/^./,c=>c.toUpperCase()); }
+
+window.__applySettings = (s) => { Object.assign(S, s); render(); };
+render();
+</script>
+</body>
+</html>
